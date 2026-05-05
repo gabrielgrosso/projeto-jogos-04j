@@ -16,42 +16,61 @@ public class Main extends ApplicationAdapter {
     private SpriteBatch batch;
     private OrthographicCamera camera;
 
-    // Texturas
+    // Texturas jogador
     private Texture corredorTexture;
+    private Texture agachadoTexture;
+    private Texture pulandoTexture;
+
+    // Outras texturas
     private Texture backgroundTexture;
     private Texture roboTexture;
     private Texture obstaculoTexture;
 
-    // Personagem
+    // Caixa destruída
+    private Texture destruidaTexture;
+
+    // Sprite atual jogador
+    private Texture texturaAtualJogador;
+
+    // Jogador
     private Rectangle corredor;
 
-    // Robô perseguidor
+    // Robô
     private Rectangle robo;
 
-    // Obstáculos
-    private Array<Rectangle> obstaculos;
+    /*
+     * CLASSE OBSTÁCULO
+     */
+    private static class Obstaculo {
 
-    // Sistema de lanes
-    private final int LEFT_LANE = 180;
-    private final int CENTER_LANE = 400;
-    private final int RIGHT_LANE = 620;
+        Rectangle rect;
 
-    private int currentLane = CENTER_LANE;
+        boolean destruido = false;
+
+        float destructionTimer = 0;
+
+        int tipo;
+    }
+
+    private Array<Obstaculo> obstaculos;
 
     // Física
     private float velocityY = 0;
+
     private boolean pulando = false;
+
     private boolean deslizando = false;
 
-    // Controle de obstáculos
-    private float obstacleTimer = 0;
-    private final float obstacleSpawnTime = 1.2f;
+    // Chão
+    private final float groundY = 100;
 
-    // Velocidade do jogo
+    // Velocidade
     private float gameSpeed = 500;
 
-    // Chão
-    private final float groundY = 80;
+    // Spawn
+    private float obstacleTimer = 0;
+
+    private final float obstacleSpawnTime = 1.3f;
 
     @Override
     public void create() {
@@ -59,79 +78,96 @@ public class Main extends ApplicationAdapter {
         batch = new SpriteBatch();
 
         camera = new OrthographicCamera();
-        camera.setToOrtho(false, 800, 480);
 
-        // Carregando texturas
+        camera.setToOrtho(false, 1280, 720);
+
+        /*
+         * TEXTURAS
+         */
         corredorTexture = new Texture("corredor.png");
+
+        agachadoTexture = new Texture("agachado.png");
+
+        pulandoTexture = new Texture("pulando.png");
+
         backgroundTexture = new Texture("background.png");
+
         roboTexture = new Texture("robo.png");
+
         obstaculoTexture = new Texture("obstaculo.png");
 
-        // Criando corredor
-        corredor = new Rectangle();
-        corredor.x = CENTER_LANE;
-        corredor.y = groundY;
-        corredor.width = 80;
-        corredor.height = 120;
+        destruidaTexture = new Texture("destruida.png");
 
-        // Criando robô
+        texturaAtualJogador = corredorTexture;
+
+        /*
+         * JOGADOR
+         */
+        corredor = new Rectangle();
+
+        corredor.x = 250;
+
+        corredor.y = groundY;
+
+        corredor.width = 80;
+
+        corredor.height = 110;
+
+        /*
+         * ROBÔ
+         */
         robo = new Rectangle();
-        robo.x = CENTER_LANE;
+
+        robo.x = 120;
+
         robo.y = groundY;
-        robo.width = 80;
-        robo.height = 120;
+
+        robo.width = 75;
+
+        robo.height = 105;
 
         obstaculos = new Array<>();
-    }
-
-    @Override
-    public void resize(int width, int height) {
-
     }
 
     @Override
     public void render() {
 
         input();
+
         logic();
+
         draw();
     }
 
     private void input() {
 
-        // Direita
-        if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
+        /*
+         * PULO
+         */
+        if (Gdx.input.isKeyJustPressed(Input.Keys.UP)
+            && !pulando
+            && !deslizando) {
 
-            if (currentLane == LEFT_LANE) {
-                currentLane = CENTER_LANE;
-            } else if (currentLane == CENTER_LANE) {
-                currentLane = RIGHT_LANE;
-            }
-        }
+            velocityY = 950;
 
-        // Esquerda
-        if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
-
-            if (currentLane == RIGHT_LANE) {
-                currentLane = CENTER_LANE;
-            } else if (currentLane == CENTER_LANE) {
-                currentLane = LEFT_LANE;
-            }
-        }
-
-        // Pulo
-        if (Gdx.input.isKeyJustPressed(Input.Keys.UP) && !pulando) {
-            velocityY = 900;
             pulando = true;
         }
 
-        // Deslizar
-        if (Gdx.input.isKeyPressed(Input.Keys.DOWN) && !pulando) {
+        /*
+         * AGACHAR
+         */
+        if (Gdx.input.isKeyPressed(Input.Keys.DOWN)
+            && !pulando) {
+
             deslizando = true;
-            corredor.height = 70;
+
+            corredor.height = 60;
+
         } else {
+
             deslizando = false;
-            corredor.height = 120;
+
+            corredor.height = 110;
         }
     }
 
@@ -139,81 +175,176 @@ public class Main extends ApplicationAdapter {
 
         float delta = Gdx.graphics.getDeltaTime();
 
-        // Movimento lateral suave
-        corredor.x += (currentLane - corredor.x) * 10 * delta;
+        /*
+         * SPRITE JOGADOR
+         */
+        if (pulando) {
 
-        // Gravidade
-        velocityY -= 1800 * delta;
+            texturaAtualJogador = pulandoTexture;
+
+        } else if (deslizando) {
+
+            texturaAtualJogador = agachadoTexture;
+
+        } else {
+
+            texturaAtualJogador = corredorTexture;
+        }
+
+        /*
+         * FÍSICA PULO
+         */
+        velocityY -= 2200 * delta;
+
         corredor.y += velocityY * delta;
 
-        // Limite do chão
+        /*
+         * CHÃO
+         */
         if (corredor.y <= groundY) {
+
             corredor.y = groundY;
+
             velocityY = 0;
+
             pulando = false;
         }
 
-        // Robô acompanha lentamente
-        robo.x += (corredor.x - robo.x) * 2f * delta;
+        /*
+         * ROBÔ
+         */
+        robo.y = groundY;
 
-        // Spawn de obstáculos
+        /*
+         * SPAWN
+         */
         obstacleTimer += delta;
 
         if (obstacleTimer >= obstacleSpawnTime) {
 
-            Rectangle obstaculo = new Rectangle();
+            Obstaculo obstaculo = new Obstaculo();
 
-            int laneRandom = MathUtils.random(0, 2);
+            obstaculo.rect = new Rectangle();
 
-            if (laneRandom == 0) {
-                obstaculo.x = LEFT_LANE;
-            } else if (laneRandom == 1) {
-                obstaculo.x = CENTER_LANE;
+            obstaculo.rect.x = 1400;
+
+            int tipo = MathUtils.random(0, 1);
+
+            obstaculo.tipo = tipo;
+
+            if (tipo == 0) {
+
+                // Chão
+                obstaculo.rect.y = groundY;
+
+                obstaculo.rect.width = MathUtils.random(45, 65);
+
+                obstaculo.rect.height = MathUtils.random(45, 80);
+
             } else {
-                obstaculo.x = RIGHT_LANE;
-            }
 
-            obstaculo.y = 480;
-            obstaculo.width = 70;
-            obstaculo.height = 70;
+                // Alto
+                obstaculo.rect.y = groundY + 70;
+
+                obstaculo.rect.width = MathUtils.random(70, 110);
+
+                obstaculo.rect.height = 35;
+            }
 
             obstaculos.add(obstaculo);
 
             obstacleTimer = 0;
         }
 
-        // Movimento obstáculos
+        /*
+         * MOVIMENTAÇÃO
+         */
         for (int i = obstaculos.size - 1; i >= 0; i--) {
 
-            Rectangle obstaculo = obstaculos.get(i);
+            Obstaculo obstaculo = obstaculos.get(i);
 
-            obstaculo.y -= gameSpeed * delta;
+            obstaculo.rect.x -= gameSpeed * delta;
 
-            // Colisão
-            if (obstaculo.overlaps(corredor)) {
+            /*
+             * HITBOXES
+             */
+            Rectangle hitboxJogador = new Rectangle(
+                corredor.x + 15,
+                corredor.y + 10,
+                corredor.width - 30,
+                corredor.height - 10
+            );
+
+            Rectangle hitboxObstaculo = new Rectangle(
+                obstaculo.rect.x + 5,
+                obstaculo.rect.y + 5,
+                obstaculo.rect.width - 10,
+                obstaculo.rect.height - 10
+            );
+
+            Rectangle hitboxRobo = new Rectangle(
+                robo.x + 10,
+                robo.y + 10,
+                robo.width - 20,
+                robo.height - 10
+            );
+
+            /*
+             * COLISÃO JOGADOR
+             */
+            if (!obstaculo.destruido
+                && hitboxJogador.overlaps(hitboxObstaculo)) {
 
                 System.out.println("GAME OVER");
 
-                // Reinicia posição
-                corredor.x = CENTER_LANE;
-                corredor.y = groundY;
-
-                obstaculos.clear();
+                resetGame();
             }
 
-            // Remove obstáculos fora da tela
-            if (obstaculo.y < -100) {
+            /*
+             * ROBÔ DESTRÓI
+             */
+            if (!obstaculo.destruido
+                && hitboxRobo.overlaps(hitboxObstaculo)) {
+
+                obstaculo.destruido = true;
+
+                obstaculo.destructionTimer = 0.4f;
+            }
+
+            /*
+             * TIMER DESTRUIÇÃO
+             */
+            if (obstaculo.destruido) {
+
+                obstaculo.destructionTimer -= delta;
+
+                if (obstaculo.destructionTimer <= 0) {
+
+                    obstaculos.removeIndex(i);
+
+                    continue;
+                }
+            }
+
+            /*
+             * REMOVE FORA TELA
+             */
+            if (obstaculo.rect.x < -200) {
+
                 obstaculos.removeIndex(i);
             }
         }
 
-        // Aumenta dificuldade gradualmente
-        gameSpeed += 2 * delta;
+        /*
+         * DIFICULDADE
+         */
+        gameSpeed += 3 * delta;
     }
 
     private void draw() {
 
         Gdx.gl.glClearColor(0, 0, 0, 1);
+
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         camera.update();
@@ -222,10 +353,14 @@ public class Main extends ApplicationAdapter {
 
         batch.begin();
 
-        // Background
-        batch.draw(backgroundTexture, 0, 0, 800, 480);
+        /*
+         * BACKGROUND
+         */
+        batch.draw(backgroundTexture, 0, 0, 1280, 720);
 
-        // Robô
+        /*
+         * ROBÔ
+         */
         batch.draw(
             roboTexture,
             robo.x,
@@ -234,38 +369,60 @@ public class Main extends ApplicationAdapter {
             robo.height
         );
 
-        // Corredor
+        /*
+         * JOGADOR
+         */
         batch.draw(
-            corredorTexture,
+            texturaAtualJogador,
             corredor.x,
             corredor.y,
             corredor.width,
             corredor.height
         );
 
-        // Obstáculos
-        for (Rectangle obstaculo : obstaculos) {
+        /*
+         * OBSTÁCULOS
+         */
+        for (Obstaculo obstaculo : obstaculos) {
+
+            Texture textura;
+
+            if (obstaculo.destruido) {
+
+                textura = destruidaTexture;
+
+            } else {
+
+                textura = obstaculoTexture;
+            }
 
             batch.draw(
-                obstaculoTexture,
-                obstaculo.x,
-                obstaculo.y,
-                obstaculo.width,
-                obstaculo.height
+                textura,
+                obstaculo.rect.x,
+                obstaculo.rect.y,
+                obstaculo.rect.width,
+                obstaculo.rect.height
             );
         }
 
         batch.end();
     }
 
-    @Override
-    public void pause() {
+    private void resetGame() {
 
-    }
+        corredor.y = groundY;
 
-    @Override
-    public void resume() {
+        velocityY = 0;
 
+        pulando = false;
+
+        deslizando = false;
+
+        texturaAtualJogador = corredorTexture;
+
+        gameSpeed = 500;
+
+        obstaculos.clear();
     }
 
     @Override
@@ -274,8 +431,17 @@ public class Main extends ApplicationAdapter {
         batch.dispose();
 
         corredorTexture.dispose();
+
+        agachadoTexture.dispose();
+
+        pulandoTexture.dispose();
+
         backgroundTexture.dispose();
+
         roboTexture.dispose();
+
         obstaculoTexture.dispose();
+
+        destruidaTexture.dispose();
     }
 }
