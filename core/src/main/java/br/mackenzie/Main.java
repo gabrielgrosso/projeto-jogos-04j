@@ -6,6 +6,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
@@ -15,6 +16,18 @@ public class Main extends ApplicationAdapter {
 
     private SpriteBatch batch;
     private OrthographicCamera camera;
+
+    /*
+     * FONTE SCORE
+     */
+    private BitmapFont font;
+
+    /*
+     * SCORE
+     */
+    private int score = 0;
+
+    private float scoreTimer = 0;
 
     // Texturas jogador
     private Texture corredorTexture;
@@ -80,6 +93,13 @@ public class Main extends ApplicationAdapter {
         camera = new OrthographicCamera();
 
         camera.setToOrtho(false, 1280, 720);
+
+        /*
+         * FONTE
+         */
+        font = new BitmapFont();
+
+        font.getData().setScale(3f);
 
         /*
          * TEXTURAS
@@ -174,6 +194,19 @@ public class Main extends ApplicationAdapter {
     private void logic() {
 
         float delta = Gdx.graphics.getDeltaTime();
+
+        /*
+         * SCORE
+         * +1 ponto por segundo vivo
+         */
+        scoreTimer += delta;
+
+        if (scoreTimer >= 1f) {
+
+            score++;
+
+            scoreTimer = 0;
+        }
 
         /*
          * SPRITE JOGADOR
@@ -359,6 +392,11 @@ public class Main extends ApplicationAdapter {
         batch.draw(backgroundTexture, 0, 0, 1280, 720);
 
         /*
+         * SCORE
+         */
+        font.draw(batch, "SCORE: " + score, 40, 680);
+
+        /*
          * ROBÔ
          */
         batch.draw(
@@ -422,6 +460,10 @@ public class Main extends ApplicationAdapter {
 
         gameSpeed = 500;
 
+        score = 0;
+
+        scoreTimer = 0;
+
         obstaculos.clear();
     }
 
@@ -429,6 +471,8 @@ public class Main extends ApplicationAdapter {
     public void dispose() {
 
         batch.dispose();
+
+        font.dispose();
 
         corredorTexture.dispose();
 
