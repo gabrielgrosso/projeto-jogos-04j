@@ -18,37 +18,64 @@ public class Main extends ApplicationAdapter {
     private OrthographicCamera camera;
 
     /*
-     * FONTE SCORE
+     * ESTADOS
      */
-    private BitmapFont font;
+    private enum GameState {
+        MENU,
+        PLAYING
+    }
+
+    private GameState gameState = GameState.MENU;
+
+    /*
+     * MENU
+     */
+    private Texture menuTexture;
+
+    private int menuOption = 0;
 
     /*
      * SCORE
      */
+    private BitmapFont font;
+
     private int score = 0;
 
     private float scoreTimer = 0;
 
-    // Texturas jogador
+    /*
+     * TEXTURAS JOGADOR
+     */
     private Texture corredorTexture;
+
     private Texture agachadoTexture;
+
     private Texture pulandoTexture;
 
-    // Outras texturas
+    /*
+     * OUTRAS TEXTURAS
+     */
     private Texture backgroundTexture;
+
     private Texture roboTexture;
+
     private Texture obstaculoTexture;
 
-    // Caixa destruída
     private Texture destruidaTexture;
 
-    // Sprite atual jogador
+    /*
+     * SPRITE ATUAL
+     */
     private Texture texturaAtualJogador;
 
-    // Jogador
+    /*
+     * JOGADOR
+     */
     private Rectangle corredor;
 
-    // Robô
+    /*
+     * ROBÔ
+     */
     private Rectangle robo;
 
     /*
@@ -67,20 +94,28 @@ public class Main extends ApplicationAdapter {
 
     private Array<Obstaculo> obstaculos;
 
-    // Física
+    /*
+     * FÍSICA
+     */
     private float velocityY = 0;
 
     private boolean pulando = false;
 
     private boolean deslizando = false;
 
-    // Chão
+    /*
+     * CHÃO
+     */
     private final float groundY = 100;
 
-    // Velocidade
+    /*
+     * VELOCIDADE
+     */
     private float gameSpeed = 500;
 
-    // Spawn
+    /*
+     * SPAWN
+     */
     private float obstacleTimer = 0;
 
     private final float obstacleSpawnTime = 1.3f;
@@ -95,11 +130,16 @@ public class Main extends ApplicationAdapter {
         camera.setToOrtho(false, 1280, 720);
 
         /*
-         * FONTE
+         * MENU
+         */
+        menuTexture = new Texture("menu.png");
+
+        /*
+         * FONTE SCORE
          */
         font = new BitmapFont();
 
-        font.getData().setScale(3f);
+        font.getData().setScale(2.5f);
 
         /*
          * TEXTURAS
@@ -152,13 +192,77 @@ public class Main extends ApplicationAdapter {
     @Override
     public void render() {
 
-        input();
+        if (gameState == GameState.MENU) {
 
-        logic();
+            inputMenu();
 
-        draw();
+            drawMenu();
+
+        } else {
+
+            input();
+
+            logic();
+
+            draw();
+        }
     }
 
+    /*
+     * MENU INPUT
+     */
+    private void inputMenu() {
+
+        /*
+         * JOGAR
+         */
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+
+            if (menuOption == 0) {
+
+                startGame();
+
+            } else {
+
+                Gdx.app.exit();
+            }
+        }
+
+        /*
+         * SAIR
+         */
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+
+            Gdx.app.exit();
+        }
+    }
+
+    /*
+     * MENU DRAW
+     */
+    private void drawMenu() {
+
+        Gdx.gl.glClearColor(0, 0, 0, 1);
+
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        camera.update();
+
+        batch.setProjectionMatrix(camera.combined);
+
+        batch.begin();
+
+        /*
+         * IMAGEM MENU
+         */
+        batch.draw(menuTexture, 0, 0, 1280, 720);
+
+        batch.end();
+    }
+
+    /*
+     * INPUT GAME
+     */
     private void input() {
 
         /*
@@ -191,13 +295,15 @@ public class Main extends ApplicationAdapter {
         }
     }
 
+    /*
+     * LÓGICA
+     */
     private void logic() {
 
         float delta = Gdx.graphics.getDeltaTime();
 
         /*
          * SCORE
-         * +1 ponto por segundo vivo
          */
         scoreTimer += delta;
 
@@ -209,7 +315,7 @@ public class Main extends ApplicationAdapter {
         }
 
         /*
-         * SPRITE JOGADOR
+         * SPRITE
          */
         if (pulando) {
 
@@ -225,7 +331,7 @@ public class Main extends ApplicationAdapter {
         }
 
         /*
-         * FÍSICA PULO
+         * FÍSICA
          */
         velocityY -= 2200 * delta;
 
@@ -267,7 +373,6 @@ public class Main extends ApplicationAdapter {
 
             if (tipo == 0) {
 
-                // Chão
                 obstaculo.rect.y = groundY;
 
                 obstaculo.rect.width = MathUtils.random(45, 65);
@@ -276,7 +381,6 @@ public class Main extends ApplicationAdapter {
 
             } else {
 
-                // Alto
                 obstaculo.rect.y = groundY + 70;
 
                 obstaculo.rect.width = MathUtils.random(70, 110);
@@ -323,18 +427,16 @@ public class Main extends ApplicationAdapter {
             );
 
             /*
-             * COLISÃO JOGADOR
+             * PLAYER HIT
              */
             if (!obstaculo.destruido
                 && hitboxJogador.overlaps(hitboxObstaculo)) {
 
-                System.out.println("GAME OVER");
-
-                resetGame();
+                gameOver();
             }
 
             /*
-             * ROBÔ DESTRÓI
+             * ROBÔ DESTROI
              */
             if (!obstaculo.destruido
                 && hitboxRobo.overlaps(hitboxObstaculo)) {
@@ -345,7 +447,7 @@ public class Main extends ApplicationAdapter {
             }
 
             /*
-             * TIMER DESTRUIÇÃO
+             * TIMER
              */
             if (obstaculo.destruido) {
 
@@ -360,7 +462,7 @@ public class Main extends ApplicationAdapter {
             }
 
             /*
-             * REMOVE FORA TELA
+             * REMOVE
              */
             if (obstaculo.rect.x < -200) {
 
@@ -374,6 +476,9 @@ public class Main extends ApplicationAdapter {
         gameSpeed += 3 * delta;
     }
 
+    /*
+     * DRAW GAME
+     */
     private void draw() {
 
         Gdx.gl.glClearColor(0, 0, 0, 1);
@@ -446,6 +551,29 @@ public class Main extends ApplicationAdapter {
         batch.end();
     }
 
+    /*
+     * START GAME
+     */
+    private void startGame() {
+
+        resetGame();
+
+        gameState = GameState.PLAYING;
+    }
+
+    /*
+     * GAME OVER
+     */
+    private void gameOver() {
+
+        resetGame();
+
+        gameState = GameState.MENU;
+    }
+
+    /*
+     * RESET
+     */
     private void resetGame() {
 
         corredor.y = groundY;
@@ -464,6 +592,8 @@ public class Main extends ApplicationAdapter {
 
         scoreTimer = 0;
 
+        obstacleTimer = 0;
+
         obstaculos.clear();
     }
 
@@ -473,6 +603,8 @@ public class Main extends ApplicationAdapter {
         batch.dispose();
 
         font.dispose();
+
+        menuTexture.dispose();
 
         corredorTexture.dispose();
 
