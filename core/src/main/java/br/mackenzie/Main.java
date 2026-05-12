@@ -3,10 +3,12 @@ package br.mackenzie;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
@@ -22,6 +24,7 @@ public class Main extends ApplicationAdapter {
      */
     private enum GameState {
         MENU,
+        HOW_TO_PLAY,
         PLAYING
     }
 
@@ -32,7 +35,23 @@ public class Main extends ApplicationAdapter {
      */
     private Texture menuTexture;
 
+    private Texture comoJogarTexture;
+
+    private boolean hasComoJogarTexture = false;
+
     private int menuOption = 0;
+
+    private final String[] menuOptions = {
+        "JOGAR",
+        "COMO JOGAR",
+        "SAIR"
+    };
+
+    private final float[] menuOptionY = {
+        365,
+        280,
+        195
+    };
 
     /*
      * SCORE
@@ -134,12 +153,17 @@ public class Main extends ApplicationAdapter {
          */
         menuTexture = new Texture("menu.png");
 
+        if (Gdx.files.internal("como-jogar.png").exists()) {
+
+            comoJogarTexture = new Texture("como-jogar.png");
+
+            hasComoJogarTexture = true;
+        }
+
         /*
          * FONTE SCORE
          */
-        font = new BitmapFont();
-
-        font.getData().setScale(2.5f);
+        font = createSharpFont(38);
 
         /*
          * TEXTURAS
@@ -189,6 +213,62 @@ public class Main extends ApplicationAdapter {
         obstaculos = new Array<>();
     }
 
+    /*
+     * FONTE
+     */
+    private BitmapFont createSharpFont(int size) {
+
+        FileHandle fontFile;
+
+        if (Gdx.files.internal("fonte.ttf").exists()) {
+
+            fontFile = Gdx.files.internal("fonte.ttf");
+
+        } else if (Gdx.files.absolute("C:/Windows/Fonts/arialbd.ttf").exists()) {
+
+            fontFile = Gdx.files.absolute("C:/Windows/Fonts/arialbd.ttf");
+
+        } else if (Gdx.files.absolute("C:/Windows/Fonts/arial.ttf").exists()) {
+
+            fontFile = Gdx.files.absolute("C:/Windows/Fonts/arial.ttf");
+
+        } else {
+
+            BitmapFont fallbackFont = new BitmapFont();
+
+            fallbackFont.getRegion().getTexture().setFilter(
+                Texture.TextureFilter.Linear,
+                Texture.TextureFilter.Linear
+            );
+
+            fallbackFont.getData().setScale(2.5f);
+
+            return fallbackFont;
+        }
+
+        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(fontFile);
+
+        FreeTypeFontGenerator.FreeTypeFontParameter parameter =
+            new FreeTypeFontGenerator.FreeTypeFontParameter();
+
+        parameter.size = size;
+
+        parameter.minFilter = Texture.TextureFilter.Linear;
+
+        parameter.magFilter = Texture.TextureFilter.Linear;
+
+        parameter.characters = FreeTypeFontGenerator.DEFAULT_CHARS
+            + "ÁÀÂÃÉÊÍÓÔÕÚÇáàâãéêíóôõúç";
+
+        BitmapFont generatedFont = generator.generateFont(parameter);
+
+        generatedFont.setUseIntegerPositions(false);
+
+        generator.dispose();
+
+        return generatedFont;
+    }
+
     @Override
     public void render() {
 
@@ -197,6 +277,12 @@ public class Main extends ApplicationAdapter {
             inputMenu();
 
             drawMenu();
+
+        } else if (gameState == GameState.HOW_TO_PLAY) {
+
+            inputHowToPlay();
+
+            drawHowToPlay();
 
         } else {
 
@@ -213,16 +299,37 @@ public class Main extends ApplicationAdapter {
      */
     private void inputMenu() {
 
-        /*
-         * JOGAR
-         */
+        if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+
+            menuOption--;
+
+            if (menuOption < 0) {
+
+                menuOption = menuOptions.length - 1;
+            }
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+
+            menuOption++;
+
+            if (menuOption >= menuOptions.length) {
+
+                menuOption = 0;
+            }
+        }
+
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
 
             if (menuOption == 0) {
 
                 startGame();
 
-            } else {
+            } else if (menuOption == 1) {
+
+                gameState = GameState.HOW_TO_PLAY;
+
+            } else if (menuOption == 2) {
 
                 Gdx.app.exit();
             }
@@ -256,6 +363,51 @@ public class Main extends ApplicationAdapter {
          * IMAGEM MENU
          */
         batch.draw(menuTexture, 0, 0, 1280, 720);
+
+        font.draw(batch, ">", 480, menuOptionY[menuOption]);
+
+        font.draw(batch, "<", 780, menuOptionY[menuOption]);
+
+        batch.end();
+    }
+
+    /*
+     * COMO JOGAR INPUT
+     */
+    private void inputHowToPlay() {
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
+            || Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+
+            gameState = GameState.MENU;
+        }
+    }
+
+    /*
+     * COMO JOGAR DRAW
+     */
+    private void drawHowToPlay() {
+
+        Gdx.gl.glClearColor(0, 0, 0, 1);
+
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        camera.update();
+
+        batch.setProjectionMatrix(camera.combined);
+
+        batch.begin();
+
+        if (hasComoJogarTexture) {
+
+            batch.draw(comoJogarTexture, 0, 0, 1280, 720);
+
+        } else {
+
+            font.draw(batch, "Arquivo como-jogar.png nao encontrado em assets", 220, 390);
+
+            font.draw(batch, "Pressione ENTER ou ESC para voltar", 310, 330);
+        }
 
         batch.end();
     }
@@ -605,6 +757,11 @@ public class Main extends ApplicationAdapter {
         font.dispose();
 
         menuTexture.dispose();
+
+        if (comoJogarTexture != null) {
+
+            comoJogarTexture.dispose();
+        }
 
         corredorTexture.dispose();
 
