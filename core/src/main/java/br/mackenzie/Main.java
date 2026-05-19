@@ -25,7 +25,8 @@ public class Main extends ApplicationAdapter {
     private enum GameState {
         MENU,
         HOW_TO_PLAY,
-        PLAYING
+        PLAYING,
+        GAME_OVER
     }
 
     private GameState gameState = GameState.MENU;
@@ -52,6 +53,27 @@ public class Main extends ApplicationAdapter {
         280,
         195
     };
+
+    /*
+     * GAME OVER
+     */
+    private Texture gameOverTexture;
+
+    private boolean hasGameOverTexture = false;
+
+    private int gameOverOption = 0;
+
+    private final float[] gameOverOptionX = {
+        375,
+        650
+    };
+
+    private final float[] gameOverOptionWidth = {
+        275,
+        300
+    };
+
+    private final float gameOverOptionY = 225;
 
     /*
      * SCORE
@@ -130,7 +152,13 @@ public class Main extends ApplicationAdapter {
     /*
      * VELOCIDADE
      */
-    private float gameSpeed = 500;
+    private static final float INITIAL_GAME_SPEED = 420;
+
+    private static final float SPEED_INCREASE_PER_LEVEL = 45;
+
+    private static final int POINTS_PER_DIFFICULTY_LEVEL = 10;
+
+    private float gameSpeed = INITIAL_GAME_SPEED;
 
     /*
      * SPAWN
@@ -158,6 +186,13 @@ public class Main extends ApplicationAdapter {
             comoJogarTexture = new Texture("como-jogar.png");
 
             hasComoJogarTexture = true;
+        }
+
+        if (Gdx.files.internal("game-over.png").exists()) {
+
+            gameOverTexture = new Texture("game-over.png");
+
+            hasGameOverTexture = true;
         }
 
         /*
@@ -283,6 +318,12 @@ public class Main extends ApplicationAdapter {
             inputHowToPlay();
 
             drawHowToPlay();
+
+        } else if (gameState == GameState.GAME_OVER) {
+
+            inputGameOver();
+
+            drawGameOver();
 
         } else {
 
@@ -413,6 +454,79 @@ public class Main extends ApplicationAdapter {
     }
 
     /*
+     * GAME OVER INPUT
+     */
+    private void inputGameOver() {
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT)
+            || Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)
+            || Gdx.input.isKeyJustPressed(Input.Keys.UP)
+            || Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
+
+            gameOverOption = 1 - gameOverOption;
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+
+            if (gameOverOption == 0) {
+
+                startGame();
+
+            } else {
+
+                resetGame();
+
+                gameState = GameState.MENU;
+            }
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+
+            resetGame();
+
+            gameState = GameState.MENU;
+        }
+    }
+
+    /*
+     * GAME OVER DRAW
+     */
+    private void drawGameOver() {
+
+        Gdx.gl.glClearColor(0, 0, 0, 1);
+
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        camera.update();
+
+        batch.setProjectionMatrix(camera.combined);
+
+        batch.begin();
+
+        if (hasGameOverTexture) {
+
+            batch.draw(gameOverTexture, 0, 0, 1280, 720);
+
+        } else {
+
+            font.draw(batch, "Arquivo game-over.png nao encontrado em assets", 220, 390);
+
+            font.draw(batch, "ENTER: jogar novamente | ESC: menu", 300, 330);
+        }
+
+        font.draw(batch, ">", gameOverOptionX[gameOverOption], gameOverOptionY);
+
+        font.draw(
+            batch,
+            "<",
+            gameOverOptionX[gameOverOption] + gameOverOptionWidth[gameOverOption],
+            gameOverOptionY
+        );
+
+        batch.end();
+    }
+
+    /*
      * INPUT GAME
      */
     private void input() {
@@ -464,6 +578,8 @@ public class Main extends ApplicationAdapter {
             score++;
 
             scoreTimer = 0;
+
+            updateDifficulty();
         }
 
         /*
@@ -622,10 +738,17 @@ public class Main extends ApplicationAdapter {
             }
         }
 
-        /*
-         * DIFICULDADE
-         */
-        gameSpeed += 3 * delta;
+    }
+
+    /*
+     * DIFICULDADE
+     */
+    private void updateDifficulty() {
+
+        int difficultyLevel = score / POINTS_PER_DIFFICULTY_LEVEL;
+
+        gameSpeed = INITIAL_GAME_SPEED
+            + (difficultyLevel * SPEED_INCREASE_PER_LEVEL);
     }
 
     /*
@@ -718,9 +841,9 @@ public class Main extends ApplicationAdapter {
      */
     private void gameOver() {
 
-        resetGame();
+        gameOverOption = 0;
 
-        gameState = GameState.MENU;
+        gameState = GameState.GAME_OVER;
     }
 
     /*
@@ -738,7 +861,7 @@ public class Main extends ApplicationAdapter {
 
         texturaAtualJogador = corredorTexture;
 
-        gameSpeed = 500;
+        gameSpeed = INITIAL_GAME_SPEED;
 
         score = 0;
 
@@ -761,6 +884,11 @@ public class Main extends ApplicationAdapter {
         if (comoJogarTexture != null) {
 
             comoJogarTexture.dispose();
+        }
+
+        if (gameOverTexture != null) {
+
+            gameOverTexture.dispose();
         }
 
         corredorTexture.dispose();
