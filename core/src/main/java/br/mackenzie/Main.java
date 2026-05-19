@@ -3,6 +3,8 @@ package br.mackenzie;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -74,6 +76,35 @@ public class Main extends ApplicationAdapter {
     };
 
     private final float gameOverOptionY = 225;
+
+    /*
+     * AUDIO
+     */
+    private Music musicaMenu;
+
+    private Music musicaFundo;
+
+    private Music roboAndando;
+
+    private Music correndo;
+
+    private Music roboGameOverAudio;
+
+    private Music gameOverAudio;
+
+    private Sound puloSound;
+
+    private Sound caixaExplodeSound;
+
+    private Sound agachaSound;
+
+    private Sound escolherSound;
+
+    private Sound selecionarSound;
+
+    private Sound fala1PersonagemSound;
+
+    private Sound fala2PersonagemSound;
 
     /*
      * SCORE
@@ -220,6 +251,66 @@ public class Main extends ApplicationAdapter {
         texturaAtualJogador = corredorTexture;
 
         /*
+         * AUDIO
+         */
+        musicaMenu = Gdx.audio.newMusic(Gdx.files.internal("musica-menu.mp3"));
+
+        musicaMenu.setLooping(true);
+
+        musicaMenu.setVolume(0.35f);
+
+        musicaFundo = Gdx.audio.newMusic(Gdx.files.internal("musica-fundo.mp3"));
+
+        musicaFundo.setLooping(true);
+
+        musicaFundo.setVolume(0.22f);
+
+        roboAndando = Gdx.audio.newMusic(Gdx.files.internal("robo-andando.mp3"));
+
+        roboAndando.setLooping(true);
+
+        roboAndando.setVolume(0.35f);
+
+        correndo = Gdx.audio.newMusic(Gdx.files.internal("correndo.mp3"));
+
+        correndo.setLooping(true);
+
+        correndo.setVolume(0.30f);
+
+        roboGameOverAudio = Gdx.audio.newMusic(Gdx.files.internal("robo-game-over.mp3"));
+
+        roboGameOverAudio.setVolume(0.85f);
+
+        gameOverAudio = Gdx.audio.newMusic(Gdx.files.internal("game-over.mp3"));
+
+        gameOverAudio.setVolume(0.85f);
+
+        roboGameOverAudio.setOnCompletionListener(new Music.OnCompletionListener() {
+
+            @Override
+            public void onCompletion(Music music) {
+
+                gameOverAudio.play();
+            }
+        });
+
+        puloSound = Gdx.audio.newSound(Gdx.files.internal("pulo.mp3"));
+
+        caixaExplodeSound = Gdx.audio.newSound(Gdx.files.internal("caixa-explode.mp3"));
+
+        agachaSound = Gdx.audio.newSound(Gdx.files.internal("agacha.mp3"));
+
+        escolherSound = Gdx.audio.newSound(Gdx.files.internal("escolher.mp3"));
+
+        selecionarSound = Gdx.audio.newSound(Gdx.files.internal("selecionar.mp3"));
+
+        fala1PersonagemSound = Gdx.audio.newSound(Gdx.files.internal("fala1-personagem.mp3"));
+
+        fala2PersonagemSound = Gdx.audio.newSound(Gdx.files.internal("fala2-personagem.mp3"));
+
+        startMenuAudio();
+
+        /*
          * JOGADOR
          */
         corredor = new Rectangle();
@@ -348,6 +439,8 @@ public class Main extends ApplicationAdapter {
 
                 menuOption = menuOptions.length - 1;
             }
+
+            escolherSound.play(0.65f);
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
@@ -358,9 +451,13 @@ public class Main extends ApplicationAdapter {
 
                 menuOption = 0;
             }
+
+            escolherSound.play(0.65f);
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+
+            selecionarSound.play(0.75f);
 
             if (menuOption == 0) {
 
@@ -421,6 +518,8 @@ public class Main extends ApplicationAdapter {
             || Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
 
             gameState = GameState.MENU;
+
+            startMenuAudio();
         }
     }
 
@@ -464,9 +563,13 @@ public class Main extends ApplicationAdapter {
             || Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
 
             gameOverOption = 1 - gameOverOption;
+
+            escolherSound.play(0.65f);
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+
+            selecionarSound.play(0.75f);
 
             if (gameOverOption == 0) {
 
@@ -474,17 +577,25 @@ public class Main extends ApplicationAdapter {
 
             } else {
 
+                stopGameOverAudio();
+
                 resetGame();
 
                 gameState = GameState.MENU;
+
+                startMenuAudio();
             }
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
 
+            stopGameOverAudio();
+
             resetGame();
 
             gameState = GameState.MENU;
+
+            startMenuAudio();
         }
     }
 
@@ -541,11 +652,34 @@ public class Main extends ApplicationAdapter {
             velocityY = 950;
 
             pulando = true;
+
+            puloSound.play(0.75f);
+        }
+
+        /*
+         * FALA PERSONAGEM
+         */
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F)) {
+
+            if (MathUtils.randomBoolean()) {
+
+                fala1PersonagemSound.play(1.00f);
+
+            } else {
+
+                fala2PersonagemSound.play(1.00f);
+            }
         }
 
         /*
          * AGACHAR
          */
+        if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN)
+            && !pulando) {
+
+            agachaSound.play(0.70f);
+        }
+
         if (Gdx.input.isKeyPressed(Input.Keys.DOWN)
             && !pulando) {
 
@@ -701,6 +835,8 @@ public class Main extends ApplicationAdapter {
                 && hitboxJogador.overlaps(hitboxObstaculo)) {
 
                 gameOver();
+
+                return;
             }
 
             /*
@@ -712,6 +848,8 @@ public class Main extends ApplicationAdapter {
                 obstaculo.destruido = true;
 
                 obstaculo.destructionTimer = 0.4f;
+
+                caixaExplodeSound.play(0.25f);
             }
 
             /*
@@ -831,9 +969,15 @@ public class Main extends ApplicationAdapter {
      */
     private void startGame() {
 
+        stopMenuAudio();
+
+        stopGameOverAudio();
+
         resetGame();
 
         gameState = GameState.PLAYING;
+
+        startGameplayAudio();
     }
 
     /*
@@ -841,9 +985,63 @@ public class Main extends ApplicationAdapter {
      */
     private void gameOver() {
 
+        stopGameplayAudio();
+
         gameOverOption = 0;
 
         gameState = GameState.GAME_OVER;
+
+        startGameOverAudio();
+    }
+
+    /*
+     * AUDIO GAMEPLAY
+     */
+    private void startMenuAudio() {
+
+        if (!musicaMenu.isPlaying()) {
+
+            musicaMenu.play();
+        }
+    }
+
+    private void stopMenuAudio() {
+
+        musicaMenu.stop();
+    }
+
+    private void startGameplayAudio() {
+
+        musicaFundo.play();
+
+        roboAndando.play();
+
+        correndo.play();
+    }
+
+    private void stopGameplayAudio() {
+
+        musicaFundo.stop();
+
+        roboAndando.stop();
+
+        correndo.stop();
+    }
+
+    private void startGameOverAudio() {
+
+        gameOverAudio.stop();
+
+        roboGameOverAudio.stop();
+
+        roboGameOverAudio.play();
+    }
+
+    private void stopGameOverAudio() {
+
+        roboGameOverAudio.stop();
+
+        gameOverAudio.stop();
     }
 
     /*
@@ -875,6 +1073,12 @@ public class Main extends ApplicationAdapter {
     @Override
     public void dispose() {
 
+        stopMenuAudio();
+
+        stopGameplayAudio();
+
+        stopGameOverAudio();
+
         batch.dispose();
 
         font.dispose();
@@ -904,5 +1108,31 @@ public class Main extends ApplicationAdapter {
         obstaculoTexture.dispose();
 
         destruidaTexture.dispose();
+
+        musicaMenu.dispose();
+
+        musicaFundo.dispose();
+
+        roboAndando.dispose();
+
+        correndo.dispose();
+
+        roboGameOverAudio.dispose();
+
+        gameOverAudio.dispose();
+
+        puloSound.dispose();
+
+        caixaExplodeSound.dispose();
+
+        agachaSound.dispose();
+
+        escolherSound.dispose();
+
+        selecionarSound.dispose();
+
+        fala1PersonagemSound.dispose();
+
+        fala2PersonagemSound.dispose();
     }
 }
